@@ -1,0 +1,12 @@
+# macOS
+.DS_Store
+
+# .NET
+bin/
+obj/
+*.user
+*.db
+
+# Rider / IntelliJ
+.idea/
+*.DotSettings.user
