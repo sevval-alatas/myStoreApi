@@ -38,23 +38,13 @@ public class MarketsController : ControllerBase
             .ThenInclude(um => um.User)
             .ToListAsync();
 
-        return Ok(markets.Select(m => new
-        {
-            m.Id,
-            m.Name,
-            m.Address,
-            m.CreatedAt,
-            Users = m.UserMarkets.Select(um => new
-            {
-                um.User.FullName,
-                um.Role
-            })
-        }));
+        return Ok(markets.Select(MarketDto.FromEntity));
     }
 
 
     // ---------------- GET BY ID ----------------
     [HttpGet("{marketId}")]
+    [Authorize(Policy = "ViewerOrAbove")]
     public async Task<IActionResult> GetById(string marketId)
     {
         var market = await _context.Markets
@@ -64,7 +54,7 @@ public class MarketsController : ControllerBase
 
         if (market == null) return NotFound();
 
-        return Ok(market);
+        return Ok(MarketDto.FromEntity(market));
     }
 
     // ---------------- CREATE ----------------
@@ -87,7 +77,7 @@ public class MarketsController : ControllerBase
         });
 
         await _context.SaveChangesAsync();
-        return Ok(market);
+        return Ok(MarketDto.FromEntity(market));
     }
 
     // ---------------- JOIN ----------------
@@ -117,17 +107,22 @@ public class MarketsController : ControllerBase
 
     // ---------------- UPDATE ----------------
     [HttpPut("{marketId}")]
-    public async Task<IActionResult> Update(string marketId, Market market)
+    [Authorize(Policy = "OwnerOnly")]
+    public async Task<IActionResult> Update(string marketId, UpdateMarketRequest request)
     {
-        if (marketId != market.Id) return BadRequest();
+        var market = await _context.Markets.FindAsync(marketId);
+        if (market == null) return NotFound();
 
-        _context.Markets.Update(market);
+        market.Name = request.Name;
+        market.Address = request.Address;
+
         await _context.SaveChangesAsync();
-        return Ok(market);
+        return Ok(MarketDto.FromEntity(market));
     }
 
     // ---------------- DELETE ----------------
     [HttpDelete("{marketId}")]
+    [Authorize(Policy = "OwnerOnly")]
     public async Task<IActionResult> Delete(string marketId)
     {
         var market = await _context.Markets.FindAsync(marketId);
@@ -156,6 +151,7 @@ public class MarketsController : ControllerBase
 
         // -------- CREATE INVITE --------
         [HttpPost]
+        [Authorize(Policy = "OwnerOnly")]
         public async Task<IActionResult> Generate(string marketId)
         {
             var invite = new MarketInvite

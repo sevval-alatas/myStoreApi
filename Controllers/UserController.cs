@@ -1,3 +1,4 @@
+using System.Linq;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
@@ -23,56 +24,59 @@ namespace MyStore.Api.Controllers
         [HttpGet]
         public async Task<IActionResult> GetAll()
         {
-            var users = await _context.Users
-                .Include(u => u.UserMarkets)
-                .ThenInclude(um => um.Market)
-                .ToListAsync();
+            var users = await _context.Users.AsQueryable().ToListAsync(); // .NET 10: System.Linq.AsyncEnumerable ile EF Core arasindaki belirsizligi cozer
 
-            return Ok(users);
+            return Ok(users.Select(UserDto.FromEntity));
         }
 
         // ---------------- GET BY ID ----------------
         [HttpGet("{id}")]
         public async Task<IActionResult> GetById(string id)
         {
-            var user = await _context.Users
-                .Include(u => u.UserMarkets)
-                .ThenInclude(um => um.Market)
-                .FirstOrDefaultAsync(u => u.Id == id);
+            var user = await _context.Users.AsQueryable().FirstOrDefaultAsync(u => u.Id == id);
 
             if (user == null)
                 return NotFound();
 
-            return Ok(user);
+            return Ok(UserDto.FromEntity(user));
         }
 
-        // ---------------- CREATE ----------------
-        [HttpPost]
-        public async Task<IActionResult> Create(User user)
-        {
-            _context.Users.Add(user);
-            await _context.SaveChangesAsync();
-
-            return CreatedAtAction(nameof(GetById), new { id = user.Id }, user);
-        }
+        // NOT: Kullanıcı oluşturma AuthController.Register üzerinden yapılır
+        // (şifre orada BCrypt ile hash'leniyor). Buradaki eski Create action'ı
+        // ham User nesnesini body'den bind ediyordu; PasswordHash dahil her alanı
+        // client belirleyebiliyordu ve şifre hash'lenmeden kaydediliyordu. Kaldırıldı.
 
         // ---------------- UPDATE ----------------
+        // Bir kullanıcı sadece kendi profilini güncelleyebilir.
         [HttpPut("{id}")]
-        public async Task<IActionResult> Update(string id, User user)
+        public async Task<IActionResult> Update(string id, UpdateUserRequest request)
         {
-            if (id != user.Id)
-                return BadRequest();
+            var currentUserId = User.FindFirst("UserId")?.Value;
+            if (currentUserId != id)
+                return Forbid();
 
-            _context.Entry(user).State = EntityState.Modified;
+            var user = await _context.Users.AsQueryable().FirstOrDefaultAsync(u => u.Id == id);
+            if (user == null)
+                return NotFound();
+
+            user.FullName = request.FullName;
+            user.PhoneNumber = request.PhoneNumber;
+            user.Email = request.Email;
+
             await _context.SaveChangesAsync();
 
-            return Ok(user);
+            return Ok(UserDto.FromEntity(user));
         }
 
         // ---------------- DELETE ----------------
+        // Bir kullanıcı sadece kendi hesabını silebilir.
         [HttpDelete("{id}")]
         public async Task<IActionResult> Delete(string id)
         {
+            var currentUserId = User.FindFirst("UserId")?.Value;
+            if (currentUserId != id)
+                return Forbid();
+
             var user = await _context.Users.FindAsync(id);
             if (user == null)
                 return NotFound();

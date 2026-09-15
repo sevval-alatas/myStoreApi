@@ -1,3 +1,5 @@
+using System;
+using System.Text.Json.Serialization;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.Extensions.Configuration;
@@ -27,11 +29,18 @@ namespace MyStore.Api
 
         public void ConfigureServices(IServiceCollection services)
         {
-            services.AddControllers();
+            services.AddControllers()
+                .AddJsonOptions(options =>
+                {
+                    // Market -> UserMarkets -> User -> UserMarkets -> Market ... gibi dongusel
+                    // navigation'lar var. DTO kullanilmayan bir yer kacarsa serialization
+                    // sonsuz donguye girmesin diye ek bir güvenlik agi.
+                    options.JsonSerializerOptions.ReferenceHandler = ReferenceHandler.IgnoreCycles;
+                });
 
             // ---------------- DB ----------------
             services.AddDbContext<AppDbContext>(options =>
-                options.UseSqlite("Data Source=mystore.db"));
+                options.UseSqlite(Configuration.GetConnectionString("DefaultConnection")));
 
             // ---------------- SWAGGER ----------------
             services.AddSwaggerGen(c =>
@@ -70,7 +79,14 @@ namespace MyStore.Api
 
             // ---------------- JWT ----------------
             var jwtSettings = Configuration.GetSection("JwtSettings");
-            var key = Encoding.ASCII.GetBytes(jwtSettings["SecretKey"]);
+            var secretKey = jwtSettings["SecretKey"];
+            if (string.IsNullOrWhiteSpace(secretKey))
+            {
+                throw new InvalidOperationException(
+                    "JwtSettings:SecretKey ayarlanmamış. Development'ta 'dotnet user-secrets set \"JwtSettings:SecretKey\" \"<deger>\"' ile, " +
+                    "production'da ise JwtSettings__SecretKey ortam değişkeniyle ayarlayın. Değeri appsettings.json'a yazmayın.");
+            }
+            var key = Encoding.ASCII.GetBytes(secretKey);
 
             services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
                 .AddJwtBearer(options =>
@@ -121,7 +137,10 @@ namespace MyStore.Api
                 });
             }
 
-            app.UseHttpsRedirection();
+            if (!env.IsDevelopment())
+            {
+                app.UseHttpsRedirection();
+            }
             app.UseRouting();
 
             app.UseAuthentication(); // 🔑

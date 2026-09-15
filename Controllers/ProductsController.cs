@@ -1,4 +1,7 @@
+using System;
+using System.Linq;
 using System.Threading.Tasks;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using MyStore.Api.Data;
@@ -8,6 +11,7 @@ namespace MyStore.Api.Controllers
 {
     [ApiController]
     [Route("api/[controller]")]
+    [Authorize]
     public class ProductsController : ControllerBase
     {
         private readonly AppDbContext _context;
@@ -23,7 +27,7 @@ namespace MyStore.Api.Controllers
                 .Include(p => p.ProductPrices)
                 .ThenInclude(pp => pp.Market)
                 .ToListAsync();
-            return Ok(products);
+            return Ok(products.Select(ProductDto.FromEntity));
         }
 
         [HttpGet("{id}")]
@@ -34,28 +38,33 @@ namespace MyStore.Api.Controllers
                 .ThenInclude(pp => pp.Market)
                 .FirstOrDefaultAsync(p => p.Id == id);
             if (product == null) return NotFound();
-            return Ok(product);
+            return Ok(ProductDto.FromEntity(product));
         }
 
         [HttpPost]
         public async Task<IActionResult> Create(Product product)
         {
+            product.Id = Guid.NewGuid().ToString(); // Id her zaman sunucuda üretilir
             _context.Products.Add(product);
             await _context.SaveChangesAsync();
-            return CreatedAtAction(nameof(GetById), new { id = product.Id }, product);
+            return CreatedAtAction(nameof(GetById), new { id = product.Id }, ProductDto.FromEntity(product));
         }
 
         [HttpPut("{id}")]
-        public async Task<IActionResult> Update(string id, Product product)
+        public async Task<IActionResult> Update(string id, UpdateProductRequest request)
         {
-            if (id != product.Id) return BadRequest();
-            _context.Entry(product).State = EntityState.Modified;
+            var product = await _context.Products.FindAsync(id);
+            if (product == null) return NotFound();
+
+            product.Name = request.Name;
+            product.Barcode = request.Barcode;
+
             await _context.SaveChangesAsync();
-            return Ok(product);
+            return Ok(ProductDto.FromEntity(product));
         }
 
         [HttpDelete("{id}")]
-        public async Task<IActionResult> Delete(int id)
+        public async Task<IActionResult> Delete(string id)
         {
             var product = await _context.Products.FindAsync(id);
             if (product == null) return NotFound();

@@ -1,4 +1,7 @@
+using System;
+using System.Linq;
 using System.Threading.Tasks;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using MyStore.Api.Data;
@@ -8,6 +11,7 @@ namespace MyStore.Api.Controllers
 {
     [ApiController]
     [Route("api/[controller]")]
+    [Authorize]
     public class ProductPricesController : ControllerBase
     {
         private readonly AppDbContext _context;
@@ -23,7 +27,7 @@ namespace MyStore.Api.Controllers
                 .Include(pp => pp.Market)
                 .Include(pp => pp.Product)
                 .ToListAsync();
-            return Ok(productPrices);
+            return Ok(productPrices.Select(ProductPriceDto.FromEntity));
         }
 
         [HttpGet("{id}")]
@@ -34,28 +38,35 @@ namespace MyStore.Api.Controllers
                 .Include(pp => pp.Product)
                 .FirstOrDefaultAsync(pp => pp.Id == id);
             if (productPrice == null) return NotFound();
-            return Ok(productPrice);
+            return Ok(ProductPriceDto.FromEntity(productPrice));
         }
 
         [HttpPost]
         public async Task<IActionResult> Create(ProductPrice productPrice)
         {
+            productPrice.Id = Guid.NewGuid().ToString(); // Id her zaman sunucuda üretilir
+            productPrice.UpdatedAt = DateTime.UtcNow;
             _context.ProductPrices.Add(productPrice);
             await _context.SaveChangesAsync();
-            return CreatedAtAction(nameof(GetById), new { id = productPrice.Id }, productPrice);
+            return CreatedAtAction(nameof(GetById), new { id = productPrice.Id }, ProductPriceDto.FromEntity(productPrice));
         }
 
         [HttpPut("{id}")]
-        public async Task<IActionResult> Update(string id, ProductPrice productPrice)
+        public async Task<IActionResult> Update(string id, UpdateProductPriceRequest request)
         {
-            if (id != productPrice.Id) return BadRequest();
-            _context.Entry(productPrice).State = EntityState.Modified;
+            var productPrice = await _context.ProductPrices.FindAsync(id);
+            if (productPrice == null) return NotFound();
+
+            productPrice.Price = request.Price;
+            productPrice.Stock = request.Stock;
+            productPrice.UpdatedAt = DateTime.UtcNow;
+
             await _context.SaveChangesAsync();
-            return Ok(productPrice);
+            return Ok(ProductPriceDto.FromEntity(productPrice));
         }
 
         [HttpDelete("{id}")]
-        public async Task<IActionResult> Delete(int id)
+        public async Task<IActionResult> Delete(string id)
         {
             var productPrice = await _context.ProductPrices.FindAsync(id);
             if (productPrice == null) return NotFound();
