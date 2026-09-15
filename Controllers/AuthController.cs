@@ -1,6 +1,7 @@
 using System;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.IdentityModel.Tokens;
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
@@ -45,6 +46,7 @@ namespace MyStore.Api.Controllers
 
         // 🔹 Login
         [HttpPost("login")]
+        [EnableRateLimiting("login")]
         public async Task<IActionResult> Login([FromBody] LoginDto login)
         {
             if (!ModelState.IsValid)
@@ -68,6 +70,7 @@ namespace MyStore.Api.Controllers
 
         // 🔹 Register (basit örnek)
         [HttpPost("register")]
+        [EnableRateLimiting("register")]
         public async Task<IActionResult> Register([FromBody] RegisterDto register)
         {
             if (!ModelState.IsValid)

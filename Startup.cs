@@ -1,6 +1,9 @@
 using System;
+using System.Threading.RateLimiting;
 using System.Text.Json.Serialization;
 using Microsoft.AspNetCore.Builder;
+using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
@@ -116,6 +119,41 @@ namespace MyStore.Api
                     policy.Requirements.Add(new ViewerOrAboveRequirement()));
             });
 
+            // ---------------- RATE LIMITING ----------------
+            // Brute-force'a karşı: login ve register'a IP başına dakikada 5 deneme sınırı.
+            services.AddRateLimiter(options =>
+            {
+                options.RejectionStatusCode = StatusCodes.Status429TooManyRequests;
+
+                options.AddPolicy("login", httpContext => RateLimitPartition.GetFixedWindowLimiter(
+                    partitionKey: httpContext.Connection.RemoteIpAddress?.ToString() ?? "unknown",
+                    factory: _ => new FixedWindowRateLimiterOptions
+                    {
+                        AutoReplenishment = true,
+                        PermitLimit = 5,
+                        QueueLimit = 0,
+                        Window = TimeSpan.FromMinutes(1)
+                    }));
+
+                options.AddPolicy("register", httpContext => RateLimitPartition.GetFixedWindowLimiter(
+                    partitionKey: httpContext.Connection.RemoteIpAddress?.ToString() ?? "unknown",
+                    factory: _ => new FixedWindowRateLimiterOptions
+                    {
+                        AutoReplenishment = true,
+                        PermitLimit = 5,
+                        QueueLimit = 0,
+                        Window = TimeSpan.FromMinutes(1)
+                    }));
+
+                options.OnRejected = async (context, cancellationToken) =>
+                {
+                    context.HttpContext.Response.ContentType = "application/json";
+                    await context.HttpContext.Response.WriteAsync(
+                        "{\"error\":\"Çok fazla deneme yaptınız. Lütfen bir dakika sonra tekrar deneyin.\"}",
+                        cancellationToken);
+                };
+            });
+
             // ---------------- SERVICES ----------------
             services.AddScoped<IMarketAuthorizationService, MarketAuthorizationService>();
 
@@ -146,6 +184,8 @@ namespace MyStore.Api
                 app.UseHttpsRedirection();
             }
             app.UseRouting();
+
+            app.UseRateLimiter();
 
             app.UseAuthentication(); // 🔑
             app.UseAuthorization();  // 🔒
