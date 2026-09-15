@@ -148,6 +148,73 @@ namespace MyStore.Api.Migrations
                     b.ToTable("RefreshTokens");
                 });
 
+            modelBuilder.Entity("MyStore.Api.Models.Sale", b =>
+                {
+                    b.Property<string>("Id")
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateTime?>("CancelledAt")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("CashierUserId")
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateTime?>("CompletedAt")
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("MarketId")
+                        .HasColumnType("TEXT");
+
+                    b.Property<int>("Status")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<decimal>("TotalAmount")
+                        .HasColumnType("TEXT");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("CashierUserId");
+
+                    b.HasIndex("MarketId", "Status", "CompletedAt");
+
+                    b.ToTable("Sales");
+                });
+
+            modelBuilder.Entity("MyStore.Api.Models.SaleItem", b =>
+                {
+                    b.Property<string>("Id")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("BarcodeSnapshot")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("ProductId")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("ProductNameSnapshot")
+                        .HasColumnType("TEXT");
+
+                    b.Property<int>("Quantity")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<string>("SaleId")
+                        .HasColumnType("TEXT");
+
+                    b.Property<decimal>("UnitPrice")
+                        .HasColumnType("TEXT");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ProductId");
+
+                    b.HasIndex("SaleId");
+
+                    b.ToTable("SaleItems");
+                });
+
             modelBuilder.Entity("MyStore.Api.Models.User", b =>
                 {
                     b.Property<string>("Id")
@@ -200,6 +267,36 @@ namespace MyStore.Api.Migrations
                     b.ToTable("UserMarkets");
                 });
 
+            modelBuilder.Entity("MyStore.Api.Models.VerificationCode", b =>
+                {
+                    b.Property<string>("Id")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("Code")
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateTime>("ExpiresAt")
+                        .HasColumnType("TEXT");
+
+                    b.Property<int>("Type")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<DateTime?>("UsedAt")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("UserId")
+                        .HasColumnType("TEXT");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("UserId", "Type");
+
+                    b.ToTable("VerificationCodes");
+                });
+
             modelBuilder.Entity("MyStore.Api.Models.MarketInvite", b =>
                 {
                     b.HasOne("MyStore.Api.Models.Market", "Market")
@@ -236,6 +333,40 @@ namespace MyStore.Api.Migrations
                     b.Navigation("User");
                 });
 
+            modelBuilder.Entity("MyStore.Api.Models.Sale", b =>
+                {
+                    b.HasOne("MyStore.Api.Models.User", "CashierUser")
+                        .WithMany()
+                        .HasForeignKey("CashierUserId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("MyStore.Api.Models.Market", "Market")
+                        .WithMany()
+                        .HasForeignKey("MarketId")
+                        .OnDelete(DeleteBehavior.Cascade);
+
+                    b.Navigation("CashierUser");
+
+                    b.Navigation("Market");
+                });
+
+            modelBuilder.Entity("MyStore.Api.Models.SaleItem", b =>
+                {
+                    b.HasOne("MyStore.Api.Models.Product", "Product")
+                        .WithMany()
+                        .HasForeignKey("ProductId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("MyStore.Api.Models.Sale", "Sale")
+                        .WithMany("Items")
+                        .HasForeignKey("SaleId")
+                        .OnDelete(DeleteBehavior.Cascade);
+
+                    b.Navigation("Product");
+
+                    b.Navigation("Sale");
+                });
+
             modelBuilder.Entity("MyStore.Api.Models.UserMarket", b =>
                 {
                     b.HasOne("MyStore.Api.Models.Market", "Market")
@@ -255,6 +386,16 @@ namespace MyStore.Api.Migrations
                     b.Navigation("User");
                 });
 
+            modelBuilder.Entity("MyStore.Api.Models.VerificationCode", b =>
+                {
+                    b.HasOne("MyStore.Api.Models.User", "User")
+                        .WithMany()
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Cascade);
+
+                    b.Navigation("User");
+                });
+
             modelBuilder.Entity("MyStore.Api.Models.Market", b =>
                 {
                     b.Navigation("Invites");
@@ -267,6 +408,11 @@ namespace MyStore.Api.Migrations
             modelBuilder.Entity("MyStore.Api.Models.Product", b =>
                 {
                     b.Navigation("ProductPrices");
+                });
+
+            modelBuilder.Entity("MyStore.Api.Models.Sale", b =>
+                {
+                    b.Navigation("Items");
                 });
 
             modelBuilder.Entity("MyStore.Api.Models.User", b =>

@@ -17,6 +17,8 @@ namespace MyStore.Api.Data
         public DbSet<UserMarket> UserMarkets { get; set; }
         public DbSet<RefreshToken> RefreshTokens { get; set; }
         public DbSet<VerificationCode> VerificationCodes { get; set; }
+        public DbSet<Sale> Sales { get; set; }
+        public DbSet<SaleItem> SaleItems { get; set; }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
@@ -102,6 +104,50 @@ namespace MyStore.Api.Data
 
             modelBuilder.Entity<VerificationCode>()
                 .HasIndex(v => new { v.UserId, v.Type });
+
+            // ---------------------------
+            // SALE -> MARKET (1-M)
+            // ---------------------------
+            modelBuilder.Entity<Sale>()
+                .HasOne(s => s.Market)
+                .WithMany()
+                .HasForeignKey(s => s.MarketId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            // ---------------------------
+            // SALE -> USER (KASİYER) (1-M)
+            // Kullanıcı silinse bile satış/fiş kaydı (mali geçmiş) korunsun diye Restrict.
+            // ---------------------------
+            modelBuilder.Entity<Sale>()
+                .HasOne(s => s.CashierUser)
+                .WithMany()
+                .HasForeignKey(s => s.CashierUserId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            // ---------------------------
+            // SALEITEM -> SALE (1-M)
+            // ---------------------------
+            modelBuilder.Entity<SaleItem>()
+                .HasOne(i => i.Sale)
+                .WithMany(s => s.Items)
+                .HasForeignKey(i => i.SaleId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            // ---------------------------
+            // SALEITEM -> PRODUCT (1-M)
+            // Satış geçmişi korunsun diye, satışı olan bir ürün silinemez (Restrict).
+            // ---------------------------
+            modelBuilder.Entity<SaleItem>()
+                .HasOne(i => i.Product)
+                .WithMany()
+                .HasForeignKey(i => i.ProductId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            // ---------------------------
+            // Günlük ciro raporu / satış geçmişi sorguları için index
+            // ---------------------------
+            modelBuilder.Entity<Sale>()
+                .HasIndex(s => new { s.MarketId, s.Status, s.CompletedAt });
         }
 
     }
