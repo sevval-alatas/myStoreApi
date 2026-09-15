@@ -1,3 +1,4 @@
+using System;
 using System.ComponentModel.DataAnnotations;
 
 namespace MyStore.Api.Models
@@ -32,6 +33,29 @@ namespace MyStore.Api.Models
 
         [EmailAddress]
         public string Email { get; set; } // opsiyonel
+    }
+
+    public class RefreshRequest
+    {
+        [Required]
+        public string RefreshToken { get; set; }
+    }
+
+    public class LogoutRequest
+    {
+        [Required]
+        public string RefreshToken { get; set; }
+    }
+
+    // Login ve Refresh aynı şekli döner
+    public class AuthResponse
+    {
+        public string AccessToken { get; set; }
+        public DateTime AccessTokenExpiresAt { get; set; }
+        public string RefreshToken { get; set; }
+        public DateTime RefreshTokenExpiresAt { get; set; }
+        public string UserId { get; set; }
+        public string FullName { get; set; }
     }
 
 }

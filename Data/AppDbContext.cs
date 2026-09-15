@@ -15,6 +15,7 @@ namespace MyStore.Api.Data
 
         public DbSet<ProductPrice> ProductPrices { get; set; }
         public DbSet<UserMarket> UserMarkets { get; set; }
+        public DbSet<RefreshToken> RefreshTokens { get; set; }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
@@ -74,6 +75,19 @@ namespace MyStore.Api.Data
             // ---------------------------
             modelBuilder.Entity<ProductPrice>()
                 .HasIndex(pp => new { pp.MarketId, pp.ProductId })
+                .IsUnique();
+
+            // ---------------------------
+            // USER -> REFRESH TOKEN (1-M)
+            // ---------------------------
+            modelBuilder.Entity<RefreshToken>()
+                .HasOne(rt => rt.User)
+                .WithMany()
+                .HasForeignKey(rt => rt.UserId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            modelBuilder.Entity<RefreshToken>()
+                .HasIndex(rt => rt.TokenHash)
                 .IsUnique();
         }
 

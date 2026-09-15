@@ -109,6 +109,45 @@ namespace MyStore.Api.Migrations
                     b.ToTable("ProductPrices");
                 });
 
+            modelBuilder.Entity("MyStore.Api.Models.RefreshToken", b =>
+                {
+                    b.Property<string>("Id")
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("CreatedByIp")
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateTime>("ExpiresAt")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("ReplacedByTokenHash")
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateTime?>("RevokedAt")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("RevokedByIp")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("TokenHash")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("UserId")
+                        .HasColumnType("TEXT");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("TokenHash")
+                        .IsUnique();
+
+                    b.HasIndex("UserId");
+
+                    b.ToTable("RefreshTokens");
+                });
+
             modelBuilder.Entity("MyStore.Api.Models.User", b =>
                 {
                     b.Property<string>("Id")
@@ -185,6 +224,16 @@ namespace MyStore.Api.Migrations
                     b.Navigation("Market");
 
                     b.Navigation("Product");
+                });
+
+            modelBuilder.Entity("MyStore.Api.Models.RefreshToken", b =>
+                {
+                    b.HasOne("MyStore.Api.Models.User", "User")
+                        .WithMany()
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Cascade);
+
+                    b.Navigation("User");
                 });
 
             modelBuilder.Entity("MyStore.Api.Models.UserMarket", b =>
