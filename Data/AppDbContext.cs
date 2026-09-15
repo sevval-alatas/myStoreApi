@@ -16,6 +16,7 @@ namespace MyStore.Api.Data
         public DbSet<ProductPrice> ProductPrices { get; set; }
         public DbSet<UserMarket> UserMarkets { get; set; }
         public DbSet<RefreshToken> RefreshTokens { get; set; }
+        public DbSet<VerificationCode> VerificationCodes { get; set; }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
@@ -89,6 +90,18 @@ namespace MyStore.Api.Data
             modelBuilder.Entity<RefreshToken>()
                 .HasIndex(rt => rt.TokenHash)
                 .IsUnique();
+
+            // ---------------------------
+            // USER -> VERIFICATION CODE (1-M)
+            // ---------------------------
+            modelBuilder.Entity<VerificationCode>()
+                .HasOne(v => v.User)
+                .WithMany()
+                .HasForeignKey(v => v.UserId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            modelBuilder.Entity<VerificationCode>()
+                .HasIndex(v => new { v.UserId, v.Type });
         }
 
     }

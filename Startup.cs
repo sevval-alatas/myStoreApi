@@ -119,6 +119,10 @@ namespace MyStore.Api
             // ---------------- SERVICES ----------------
             services.AddScoped<IMarketAuthorizationService, MarketAuthorizationService>();
 
+            // GEÇİCİ: gerçek bir email/SMS sağlayıcısı bağlanana kadar sadece log'a yazan implementasyonlar
+            services.AddScoped<IEmailSender, ConsoleEmailSender>();
+            services.AddScoped<ISmsSender, ConsoleSmsSender>();
+
             // ---------------- HANDLERS ----------------
             services.AddScoped<IAuthorizationHandler, OwnerOnlyHandler>();
             services.AddScoped<IAuthorizationHandler, MemberOrOwnerHandler>();

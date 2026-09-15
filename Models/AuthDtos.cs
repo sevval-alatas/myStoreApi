@@ -56,6 +56,28 @@ namespace MyStore.Api.Models
         public DateTime RefreshTokenExpiresAt { get; set; }
         public string UserId { get; set; }
         public string FullName { get; set; }
+        public bool PhoneConfirmed { get; set; }
+        public bool EmailConfirmed { get; set; }
+    }
+
+    public class VerifyPhoneRequest
+    {
+        [Required]
+        [Phone]
+        public string PhoneNumber { get; set; }
+
+        [Required]
+        public string Code { get; set; }
+    }
+
+    public class VerifyEmailRequest
+    {
+        [Required]
+        [EmailAddress]
+        public string Email { get; set; }
+
+        [Required]
+        public string Code { get; set; }
     }
 
 }
